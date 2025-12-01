@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import ndcg_score
 import plotly.express as px
+from tqdm import tqdm
 
 class SearchEvaluator:
     def __init__(self, model_a_predict, model_b_predict):
@@ -75,7 +76,7 @@ class SearchEvaluator:
         """
         results = []
 
-        for query, ground_truth in zip(queries, ground_truths):
+        for query, ground_truth in tqdm(zip(queries, ground_truths), total=len(queries), desc="Evaluating queries"):
             ground_truth_set = set(ground_truth)
             
             # Model A

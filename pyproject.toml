@@ -5,8 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "datasets>=4.4.1",
+    "einops>=0.8.1",
+    "mteb>=2.2.2",
     "numpy>=2.3.5",
     "pandas>=2.3.3",
     "plotly>=6.5.0",
+    "rank-bm25>=0.2.2",
     "scikit-learn>=1.7.2",
+    "torch>=2.9.1",
+    "transformers>=4.57.3",
 ]
