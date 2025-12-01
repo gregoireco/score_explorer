@@ -2,7 +2,6 @@ import time
 import pandas as pd
 import numpy as np
 from sklearn.metrics import ndcg_score
-import plotly.express as px
 from tqdm import tqdm
 
 class SearchEvaluator:
@@ -113,38 +112,3 @@ class SearchEvaluator:
             results.append(row)
             
         return pd.DataFrame(results)
-
-def visualize_results(df, metric='ndcg'):
-    """
-    Visualize the evaluation results using Plotly.
-    X-axis: Latency Difference (A - B)
-    Y-axis: Metric Difference (A - B)
-    
-    Args:
-        df: DataFrame containing evaluation results.
-        metric: 'ndcg' or 'map' (default 'ndcg').
-    """
-    metric_col = f'{metric}_diff'
-    metric_a = f'model_a_{metric}'
-    metric_b = f'model_b_{metric}'
-    
-    if metric_col not in df.columns:
-        raise ValueError(f"Metric column {metric_col} not found in DataFrame")
-        
-    fig = px.scatter(
-        df,
-        x='latency_diff',
-        y=metric_col,
-        hover_data=['query', metric_a, metric_b, 'model_a_latency_ms', 'model_b_latency_ms'],
-        title=f'Search Model Comparison ({metric.upper()}): Model A vs Model B',
-        labels={
-            'latency_diff': 'Latency Difference (ms) (Positive = A is slower)',
-            metric_col: f'{metric.upper()} Difference (Positive = A is better)'
-        }
-    )
-    
-    # Add quadrant lines
-    fig.add_hline(y=0, line_dash="dash", line_color="gray")
-    fig.add_vline(x=0, line_dash="dash", line_color="gray")
-    
-    return fig
