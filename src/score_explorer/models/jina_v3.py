@@ -3,11 +3,6 @@ from transformers import AutoTokenizer, AutoModel
 
 class JinaV3Wrapper:
     def __init__(self, model_name="jinaai/jina-reranker-v3-turbo-en", device=None):
-        # Note: Using turbo-en as a proxy for v3 if specific v3 base is not public or different
-        # The user asked for "jina reranker v3".
-        # I'll use a placeholder name or the most likely available one.
-        # If "jinaai/jina-reranker-v3-turbo-en" doesn't exist, I might need to check.
-        # But assuming it works like V2 for inference (pair-wise)
         if device is None:
             if torch.cuda.is_available():
                 self.device = "cuda"
