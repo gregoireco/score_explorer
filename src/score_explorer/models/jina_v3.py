@@ -2,7 +2,7 @@ import torch
 from transformers import AutoTokenizer, AutoModel
 
 class JinaV3Wrapper:
-    def __init__(self, model_name="jinaai/jina-reranker-v3-turbo-en", device=None):
+    def __init__(self, model_name="jinaai/jina-reranker-v3", device=None, dtype=None):
         if device is None:
             if torch.cuda.is_available():
                 self.device = "cuda"
@@ -20,10 +20,22 @@ class JinaV3Wrapper:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             
+        # Determine dtype if not provided
+        if dtype is None:
+            if self.device == "cuda" and torch.cuda.is_bf16_supported():
+                self.dtype = torch.bfloat16
+            elif self.device == "cuda":
+                self.dtype = torch.float16
+            else:
+                self.dtype = torch.float32
+        else:
+            self.dtype = dtype
+
+        print(f"Using dtype: {self.dtype}")
+
         # V3 uses custom JinaForRanking architecture
-        # Use float32 to reduce memory usage
         self.model = AutoModel.from_pretrained(
-            model_name, trust_remote_code=True, torch_dtype=torch.float32
+            model_name, trust_remote_code=True, torch_dtype=self.dtype
         ).to(self.device)
         self.model.eval()
 

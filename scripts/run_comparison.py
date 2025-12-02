@@ -66,8 +66,13 @@ def main(num_queries=None, test_mode=False):
     # Model B: Jina V3
     try:
         # Use local V3 weights
-        # V3 has very large context window (131k) - use CPU to avoid MPS OOM
-        model_b = JinaV3Wrapper(model_name=str(MODELS_DIR / "jina-reranker-v3"), device="cpu")
+        # On L4/CUDA, use device (GPU). On MPS, use CPU to avoid OOM.
+        v3_device = device
+        if device == "mps":
+            print("⚠️  MPS detected: Forcing Jina V3 to CPU to avoid OOM errors.")
+            v3_device = "cpu"
+            
+        model_b = JinaV3Wrapper(model_name=str(MODELS_DIR / "jina-reranker-v3"), device=v3_device)
     except Exception as e:
         print(f"Failed to load V3 (./jina-reranker-v3): {e}")
         print("Falling back to V2 for Model B (Comparison will be V2 vs V2)")
@@ -116,8 +121,21 @@ def main(num_queries=None, test_mode=False):
     print("Running evaluation...")
     evaluator = SearchEvaluator(model_a_wrapper, model_b_wrapper)
     
+    # Prepare filenames for checkpointing
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_id = f"{timestamp}_n{selected_num_queries}"
+    csv_filename = f"evaluation_results_{run_id}.csv"
+    checkpoint_path = RESULTS_DIR / f"checkpoint_{csv_filename}"
+    
     # Pass query_ids as "queries"
-    df = evaluator.evaluate(query_ids, ground_truths, k_ndcg=10, k_map=1000)
+    df = evaluator.evaluate(
+        query_ids, 
+        ground_truths, 
+        k_ndcg=10, 
+        k_map=1000,
+        checkpoint_interval=20,
+        checkpoint_path=checkpoint_path
+    )
     
     # Add metadata
     df['query_text'] = df['query'].apply(lambda qid: loader.get_query_text(qid))
@@ -129,10 +147,6 @@ def main(num_queries=None, test_mode=False):
     print(f"Mean MAP Diff: {df['map_diff'].mean()}")
     
     # 4. Save Results with Run ID
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_id = f"{timestamp}_n{selected_num_queries}"
-    
-    csv_filename = f"evaluation_results_{run_id}.csv"
     html_filename = f"evaluation_results_map_{run_id}.html"
     
     df.to_csv(RESULTS_DIR / csv_filename, index=False)
@@ -140,6 +154,10 @@ def main(num_queries=None, test_mode=False):
     fig_map = visualize_results(df, metric='map')
     fig_map.write_html(RESULTS_DIR / html_filename)
     print(f"Results saved to results/{csv_filename} and results/{html_filename}")
+    
+    # Clean up checkpoint if successful
+    if checkpoint_path.exists():
+        checkpoint_path.unlink()
 
 
 if __name__ == "__main__":

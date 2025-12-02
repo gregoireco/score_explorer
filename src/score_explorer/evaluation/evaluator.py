@@ -60,7 +60,7 @@ class SearchEvaluator:
                 
         return score / min(len(ground_truth_ids), k)
 
-    def evaluate(self, queries, ground_truths, k_ndcg=10, k_map=1000):
+    def evaluate(self, queries, ground_truths, k_ndcg=10, k_map=1000, checkpoint_interval=None, checkpoint_path=None):
         """
         Evaluate both models on a list of queries and ground truth document IDs.
         
@@ -69,13 +69,15 @@ class SearchEvaluator:
             ground_truths: List of sets/lists of relevant document IDs.
             k_ndcg: k for NDCG calculation (default 10). If None, NDCG is skipped.
             k_map: k for MAP calculation (default 1000). If None, MAP is skipped.
+            checkpoint_interval: Save results every N queries.
+            checkpoint_path: Path to save checkpoint CSV.
             
         Returns:
             pd.DataFrame with evaluation results.
         """
         results = []
 
-        for query, ground_truth in tqdm(zip(queries, ground_truths), total=len(queries), desc="Evaluating queries"):
+        for i, (query, ground_truth) in tqdm(enumerate(zip(queries, ground_truths)), total=len(queries), desc="Evaluating queries"):
             ground_truth_set = set(ground_truth)
             
             # Model A
@@ -110,5 +112,9 @@ class SearchEvaluator:
                 })
             
             results.append(row)
+            
+            # Checkpointing
+            if checkpoint_interval and checkpoint_path and (i + 1) % checkpoint_interval == 0:
+                pd.DataFrame(results).to_csv(checkpoint_path, index=False)
             
         return pd.DataFrame(results)
